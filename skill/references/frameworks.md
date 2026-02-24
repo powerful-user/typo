@@ -1,13 +1,13 @@
-# Framework-Specific Generation Details
+# Framework Usage Patterns
+
+Load this file after `typo generate` to show the user how to wire up the generated config in their specific framework. Each section shows the generated output AND the integration code.
 
 ## Next.js
 
-**Output**: `src/fonts.ts`
+**Generated**: `src/fonts.ts`
 
-Uses `next/font/local` for optimal performance (automatic font subsetting, zero layout shift).
-
-### Variable font example
 ```typescript
+// Variable font (preferred)
 import localFont from 'next/font/local';
 
 export const inter = localFont({
@@ -15,12 +15,8 @@ export const inter = localFont({
   variable: '--font-inter',
   display: 'swap',
 });
-```
 
-### Static font example
-```typescript
-import localFont from 'next/font/local';
-
+// Static weights
 export const roboto = localFont({
   src: [
     { path: '../fonts/Roboto-Regular.woff2', weight: '400', style: 'normal' },
@@ -31,11 +27,11 @@ export const roboto = localFont({
 });
 ```
 
-### Usage in layout.tsx
+**Integration** — `app/layout.tsx`:
 ```tsx
 import { inter } from './fonts';
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
       <body>{children}</body>
@@ -44,42 +40,16 @@ export default function RootLayout({ children }) {
 }
 ```
 
----
+Then use in CSS/Tailwind: `font-family: var(--font-inter)` or with Tailwind v4 `@theme { --font-sans: var(--font-inter); }`.
 
-## CSS / Vite
-
-**Output**: `src/fonts.css`
-
-Standard `@font-face` declarations. Works with Vite, vanilla HTML, or any bundler.
-
-### Example output
-```css
-@font-face {
-  font-family: 'Inter';
-  src: url('../fonts/Inter-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-```
-
-### Usage
-```html
-<link rel="stylesheet" href="/src/fonts.css">
-```
-```css
-body { font-family: 'Inter', sans-serif; }
-```
+**Gotcha**: Next.js auto-subsets fonts at build time — do NOT run `typo subset` for Next.js projects. It's redundant and the generated subset may conflict with Next.js's own optimization.
 
 ---
 
 ## Tailwind v4
 
-**Output**: `src/fonts.css`
+**Generated**: `src/fonts.css`
 
-Generates `@font-face` rules plus a `@theme` block for Tailwind CSS v4 custom properties.
-
-### Example output
 ```css
 @font-face {
   font-family: 'Inter';
@@ -90,30 +60,56 @@ Generates `@font-face` rules plus a `@theme` block for Tailwind CSS v4 custom pr
 }
 
 @theme {
-  --font-inter: 'Inter', sans-serif;
+  --font-sans: 'Inter', sans-serif;
 }
 ```
 
-### Usage
-```html
-<p class="font-inter">Text with Inter font</p>
-```
-
-Import the generated CSS in your main stylesheet:
+**Integration** — main CSS file (e.g., `src/app/globals.css`):
 ```css
 @import "tailwindcss";
 @import "./fonts.css";
+```
+
+Order matters: `@import "./fonts.css"` MUST come AFTER `@import "tailwindcss"` so the `@theme` block extends (not gets overwritten by) the default theme.
+
+**Gotcha**: The `@theme` variable name controls the utility class. `--font-sans` maps to `font-sans`, `--font-mono` maps to `font-mono`. If the user wants `font-heading`, the CSS variable must be `--font-heading`.
+
+---
+
+## CSS / Vite
+
+**Generated**: `src/fonts.css`
+
+```css
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+**Integration**:
+```html
+<!-- In HTML -->
+<link rel="stylesheet" href="/src/fonts.css">
+```
+```css
+/* In CSS */
+body { font-family: 'Inter', sans-serif; }
+```
+```js
+// In Vite/JS entry
+import './fonts.css';
 ```
 
 ---
 
 ## Flutter
 
-**Output**: Merges into `pubspec.yaml`
+**Generated**: merges into `pubspec.yaml`
 
-Generates the `fonts:` section under `flutter:` in pubspec.yaml.
-
-### Example output
 ```yaml
 flutter:
   fonts:
@@ -122,14 +118,18 @@ flutter:
         - asset: fonts/Inter-Regular.woff2
         - asset: fonts/Inter-Bold.woff2
           weight: 700
+        - asset: fonts/Inter-Italic.woff2
+          style: italic
 ```
 
-### Usage
+**Integration**:
 ```dart
 Text(
   'Hello',
-  style: TextStyle(fontFamily: 'Inter'),
+  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
 )
 ```
 
-**Note**: Flutter requires font files to be committed to the repo (no symlinks). Copy files instead of linking for Flutter projects.
+**Critical**: Flutter CANNOT use symlinks — the build system resolves them and may fail. For Flutter projects, copy font files directly into `fonts/` instead of using `typo link`. After adding to library: `cp ~/.typo/fonts/inter/* fonts/`.
+
+**Gotcha**: Flutter only supports `.ttf` and `.otf` for mobile builds. If you added `.woff2` files, run `typo convert <name> --format ttf` first, then copy the `.fonts/*.ttf` files.
