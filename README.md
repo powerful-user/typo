@@ -5,7 +5,16 @@ Font management CLI for web and mobile projects. Search, download, link, and gen
 ## Install
 
 ```bash
-npm install -g @typo-cli/typo
+curl -fsSL https://raw.githubusercontent.com/powerful-user/typo/main/install.sh | bash
+```
+
+Or install manually from source:
+
+```bash
+git clone https://github.com/powerful-user/typo.git
+cd typo
+npm install && npm run build
+npm link
 ```
 
 ## Quick Start
