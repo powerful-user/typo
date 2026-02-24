@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.fonts/
+*.tsbuildinfo
+.DS_Store
